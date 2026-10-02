@@ -625,7 +625,6 @@ final class Lang_Attribute_Blocks {
 			'nakedCatPluginsLangAttributeBlocks',
 			array(
 				'supportedBlocks'   => $this->blocks,
-				'siteLanguage'      => $this->get_website_language(), // The website language (e.g., 'pt-PT'), regardless of the user's locale
 				'currentTheme'      => get_stylesheet(),
 				'editablePostTypes' => $this->get_page_lang_meta_post_types(),
 				'highlightEnabled'  => get_option( 'nakedcatplugins_lang_attr_highlight_blocks', false ),
