@@ -113,6 +113,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 * [FIX] On right-to-left websites, pages and templates set to a left-to-right language kept the right-to-left text direction
 * [FIX] The language settings in the block editor were always shown in English, even when a translation was available
 * [FIX] The language field placeholder showed the editor’s own profile language instead of the website’s language when the two were different
+* [DEV] No more WordPress notice in the block widgets editor and Customizer when debugging is on
 * [DEV] Tested up to WordPress 7.1
 
 = 3.2 - 2026-08-02 =
