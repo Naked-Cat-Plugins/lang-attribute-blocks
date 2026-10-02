@@ -42,6 +42,14 @@ final class Lang_Attribute_Blocks {
 	const LIST_TABLE_COLUMN = 'nakedcatplugins_lang';
 
 	/**
+	 * The website's language tag, once worked out.
+	 *
+	 * @since 3.3
+	 * @var string|null
+	 */
+	private $website_language = null;
+
+	/**
 	 * Defines the WordPress blocks that will support language attributes.
 	 *
 	 * This property stores an array of block type identifiers that the plugin will
@@ -138,7 +146,7 @@ final class Lang_Attribute_Blocks {
 	 */
 	public function init_hooks() {
 		// Register block attributes
-		add_action( 'register_block_type_args', array( $this, 'register_block_attributes' ), 10, 2 );
+		add_filter( 'register_block_type_args', array( $this, 'register_block_attributes' ), 10, 2 );
 		// Applies language attributes to block content in the frontend
 		foreach ( $this->blocks as $block_name ) {
 			add_filter( 'render_block_' . $block_name, array( $this, 'process_blocks' ), 10, 2 );
@@ -181,20 +189,24 @@ final class Lang_Attribute_Blocks {
 	 */
 	public function register_page_lang_meta() {
 		$args_lang = array(
-			'show_in_rest'  => true,
-			'single'        => true,
-			'type'          => 'string',
-			'default'       => '',
-			'auth_callback' => function () {
+			'show_in_rest'      => true,
+			'single'            => true,
+			'type'              => 'string',
+			'default'           => '',
+			'sanitize_callback' => array( $this, 'sanitize_lang_code' ),
+			'auth_callback'     => function () {
 				return current_user_can( 'edit_posts' );
 			},
 		);
 		$args_dir  = array(
-			'show_in_rest'  => true,
-			'single'        => true,
-			'type'          => 'string',
-			'default'       => 'ltr',
-			'auth_callback' => function () {
+			'show_in_rest'      => true,
+			'single'            => true,
+			'type'              => 'string',
+			'default'           => 'ltr',
+			'sanitize_callback' => function ( $value ) {
+				return 'rtl' === $value ? 'rtl' : 'ltr';
+			},
+			'auth_callback'     => function () {
 				return current_user_can( 'edit_posts' );
 			},
 		);
@@ -228,6 +240,10 @@ final class Lang_Attribute_Blocks {
 	 * @return string Language tag, e.g. 'pt-PT'.
 	 */
 	private function get_website_language() {
+		// Switching locale reloads the loaded text domains, so only do it once per request.
+		if ( null !== $this->website_language ) {
+			return $this->website_language;
+		}
 		$locale   = get_locale();
 		$switched = switch_to_locale( $locale );
 		// phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Core string, see get_bloginfo().
@@ -238,6 +254,7 @@ final class Lang_Attribute_Blocks {
 		if ( 'html_lang_attribute' === $output || preg_match( '/[^a-zA-Z0-9-]/', $output ) ) {
 			$output = str_replace( '_', '-', $locale );
 		}
+		$this->website_language = $output;
 		return $output;
 	}
 
@@ -263,11 +280,18 @@ final class Lang_Attribute_Blocks {
 			return $output;
 		}
 
-		$safe_lang = esc_attr( $page_lang );
+		$lang_attribute = 'lang="' . esc_attr( $page_lang ) . '"';
 		if ( strpos( $output, 'lang=' ) !== false ) {
-			$output = preg_replace( '/lang="[^"]*"/', 'lang="' . $safe_lang . '"', $output );
+			// A callback, so a "$" or "\" in the language code is not read as a back-reference.
+			$output = preg_replace_callback(
+				'/lang="[^"]*"/',
+				function () use ( $lang_attribute ) {
+					return $lang_attribute;
+				},
+				$output
+			);
 		} else {
-			$output .= ' lang="' . $safe_lang . '"';
+			$output .= ' ' . $lang_attribute;
 		}
 
 		// Core only outputs dir on RTL websites, so replace it whatever the page direction is,
@@ -279,6 +303,41 @@ final class Lang_Attribute_Blocks {
 		}
 
 		return $output;
+	}
+
+	/**
+	 * Tidy up a language code.
+	 *
+	 * Trims, turns WordPress locale underscores into hyphens, drops the WordPress-only locale
+	 * suffixes (de_DE_formal, pt_PT_ao90...) and applies the conventional casing (pt-PT,
+	 * zh-Hant-TW). Codes that are not valid are kept, only tidied: the editor fields show an
+	 * error for those instead. Mirrors normalize() in assets/js/lang-code.js.
+	 *
+	 * @since 3.3
+	 * @param mixed $value The language code.
+	 * @return string The tidied language code.
+	 */
+	public function sanitize_lang_code( $value ) {
+		$code = is_string( $value ) ? sanitize_text_field( $value ) : '';
+		$code = preg_replace( '/-(?:formal|informal|ao90)$/i', '', str_replace( '_', '-', trim( $code ) ) );
+		if ( '' === $code ) {
+			return '';
+		}
+		$subtags         = explode( '-', $code );
+		$after_singleton = false;
+		foreach ( $subtags as $index => $subtag ) {
+			if ( 0 === $index || $after_singleton || 1 === strlen( $subtag ) ) {
+				$after_singleton   = $after_singleton || 1 === strlen( $subtag );
+				$subtags[ $index ] = strtolower( $subtag );
+			} elseif ( preg_match( '/^[a-z]{4}$/i', $subtag ) ) {
+				$subtags[ $index ] = ucfirst( strtolower( $subtag ) );
+			} elseif ( preg_match( '/^[a-z]{2}$/i', $subtag ) ) {
+				$subtags[ $index ] = strtoupper( $subtag );
+			} else {
+				$subtags[ $index ] = strtolower( $subtag );
+			}
+		}
+		return implode( '-', $subtags );
 	}
 
 	/**
@@ -299,7 +358,8 @@ final class Lang_Attribute_Blocks {
 			list( 'lang' => $lang, 'dir' => $dir ) = $this->get_template_lang_and_dir( $post_id );
 		}
 		return array(
-			'lang' => $lang,
+			// Tidied on output too, for values saved before codes were tidied on save.
+			'lang' => $this->sanitize_lang_code( $lang ),
 			'dir'  => 'rtl' === $dir ? 'rtl' : 'ltr',
 		);
 	}
@@ -471,7 +531,7 @@ final class Lang_Attribute_Blocks {
 	 * 'lang' and 'dir' HTML attributes to their markup. It:
 	 *
 	 * 1. Checks if a block has a language attribute specified
-	 * 2. Sanitizes the language code and direction values
+	 * 2. Tidies the language code and limits the direction to 'ltr' or 'rtl'
 	 * 3. Uses WP_HTML_Tag_Processor to safely modify the HTML
 	 * 4. Targets the block's wrapper, the first element in the block content
 	 * 5. Returns the modified HTML with language attributes applied
@@ -483,9 +543,10 @@ final class Lang_Attribute_Blocks {
 	 * @return string Modified block content with language attributes applied.
 	 */
 	public function process_blocks( $block_content, $block ) {
-		if ( isset( $block['attrs']['lang'] ) && ! empty( $block['attrs']['lang'] ) ) {
-			$lang          = trim( esc_attr( $block['attrs']['lang'] ) );
-			$dir           = trim( isset( $block['attrs']['dir'] ) ? esc_attr( $block['attrs']['dir'] ) : 'ltr' );
+		$lang = isset( $block['attrs']['lang'] ) ? $this->sanitize_lang_code( $block['attrs']['lang'] ) : '';
+		if ( '' !== $lang ) {
+			// No esc_attr(): set_attribute() escapes, and escaping twice garbles the value.
+			$dir           = isset( $block['attrs']['dir'] ) && 'rtl' === $block['attrs']['dir'] ? 'rtl' : 'ltr';
 			$tag_processor = new \WP_HTML_Tag_Processor( $block_content );
 			// The first tag is the block's wrapper for every supported block, whatever its name:
 			// <nav> for Navigation, <li> for Submenu, <ul> for Page List, or the tagName chosen
@@ -497,6 +558,37 @@ final class Lang_Attribute_Blocks {
 			return $tag_processor->get_updated_html();
 		}
 		return $block_content;
+	}
+
+	/**
+	 * The error shown under a language code field when the code is not valid.
+	 *
+	 * @since 3.3
+	 * @return string The message.
+	 */
+	private function get_lang_code_error_message() {
+		return __( 'This is not a valid language code. Use a code like “fr”, “pt” or “pt-PT”.', 'lang-attribute-blocks' );
+	}
+
+	/**
+	 * Register the shared language code script, and its error message style for the admin screens.
+	 *
+	 * @since 3.3
+	 * @return string The script handle.
+	 */
+	private function register_lang_code_assets() {
+		$handle = 'nakedcatplugins-lang-attribute-blocks-lang-code';
+		if ( ! wp_script_is( $handle, 'registered' ) ) {
+			wp_register_script(
+				$handle,
+				plugins_url( 'assets/js/lang-code.js', NAKEDCATPLUGINS_LANG_ATTRIBUTE_BLOCKS_FILE ),
+				array(),
+				filemtime( plugin_dir_path( NAKEDCATPLUGINS_LANG_ATTRIBUTE_BLOCKS_FILE ) . 'assets/js/lang-code.js' ),
+				true
+			);
+			wp_add_inline_style( 'wp-admin', '.nakedcatplugins-lang-code-error:not([hidden]) { display: block; color: #d63638; }' );
+		}
+		return $handle;
 	}
 
 	/**
@@ -520,7 +612,7 @@ final class Lang_Attribute_Blocks {
 		wp_enqueue_script(
 			'nakedcatplugins-lang-attribute-blocks-script',
 			plugins_url( 'build/index.js', NAKEDCATPLUGINS_LANG_ATTRIBUTE_BLOCKS_FILE ),
-			array( 'wp-blocks', 'wp-dom', 'wp-dom-ready', 'wp-edit-post', 'wp-editor', 'wp-element', 'wp-i18n', 'wp-block-editor', 'wp-plugins', 'wp-data', 'wp-core-data' ),
+			array( 'wp-blocks', 'wp-dom', 'wp-dom-ready', 'wp-edit-post', 'wp-editor', 'wp-element', 'wp-i18n', 'wp-block-editor', 'wp-plugins', 'wp-data', 'wp-core-data', $this->register_lang_code_assets() ),
 			filemtime( plugin_dir_path( NAKEDCATPLUGINS_LANG_ATTRIBUTE_BLOCKS_FILE ) . 'build/index.js' ),
 			true
 		);
@@ -544,7 +636,7 @@ final class Lang_Attribute_Blocks {
 		);
 
 		// Set script translations
-		wp_set_script_translations( 'lang-attribute-blocks-script', 'lang-attribute-blocks' );
+		wp_set_script_translations( 'nakedcatplugins-lang-attribute-blocks-script', 'lang-attribute-blocks' );
 	}
 
 	/**
@@ -614,6 +706,7 @@ final class Lang_Attribute_Blocks {
 	 * Add custom highlight color override if specified via filter.
 	 *
 	 * @since 2.0
+	 * @return void
 	 */
 	private function maybe_add_custom_highlight_color() {
 		/**
@@ -719,6 +812,9 @@ final class Lang_Attribute_Blocks {
 			return;
 		}
 
+		// Checks the language code as it is typed. add_meta_boxes runs before the admin header, so the style still prints.
+		wp_enqueue_script( $this->register_lang_code_assets() );
+
 		foreach ( get_post_types( array( 'public' => true ), 'names' ) as $post_type ) {
 			add_meta_box(
 				'nakedcatplugins_page_language',
@@ -756,7 +852,8 @@ final class Lang_Attribute_Blocks {
 			<label for="nakedcatplugins_page_lang">
 				<?php esc_html_e( 'Language Code', 'lang-attribute-blocks' ); ?>
 			</label>
-			<input type="text" id="nakedcatplugins_page_lang" name="nakedcatplugins_page_lang" value="<?php echo esc_attr( $lang ); ?>" placeholder="<?php echo esc_attr( $placeholder ); ?>" class="widefat"/>
+			<input type="text" id="nakedcatplugins_page_lang" name="nakedcatplugins_page_lang" value="<?php echo esc_attr( $lang ); ?>" placeholder="<?php echo esc_attr( $placeholder ); ?>" class="widefat nakedcatplugins-lang-code-input"/>
+			<span class="nakedcatplugins-lang-code-error" hidden><?php echo esc_html( $this->get_lang_code_error_message() ); ?></span>
 			<span class="description">
 				<?php esc_html_e( "Valid language code for this page/post, like “fr” or “pt-PT”, if different from the website's main language (shown as a placeholder) - This overrides the HTML language attribute", 'lang-attribute-blocks' ); ?>
 			</span>
@@ -948,7 +1045,8 @@ final class Lang_Attribute_Blocks {
 				<label>
 					<span class="title"><?php esc_html_e( 'Language', 'lang-attribute-blocks' ); ?></span>
 					<span class="input-text-wrap">
-						<input type="text" name="nakedcatplugins_quick_edit_lang" value="" placeholder="<?php echo esc_attr( $placeholder ); ?>" size="<?php echo esc_attr( mb_strlen( $placeholder ) + 2 ); ?>"/>
+						<input type="text" name="nakedcatplugins_quick_edit_lang" value="" placeholder="<?php echo esc_attr( $placeholder ); ?>" size="<?php echo absint( mb_strlen( $placeholder ) + 2 ); ?>" class="nakedcatplugins-lang-code-input"/>
+						<span class="nakedcatplugins-lang-code-error" hidden><?php echo esc_html( $this->get_lang_code_error_message() ); ?></span>
 					</span>
 				</label>
 				<label>
@@ -989,7 +1087,8 @@ final class Lang_Attribute_Blocks {
 				<label>
 					<span class="title"><?php esc_html_e( 'Language', 'lang-attribute-blocks' ); ?></span>
 					<span class="input-text-wrap">
-						<input type="text" name="nakedcatplugins_bulk_edit_lang" value="" placeholder="<?php echo esc_attr( $no_change ); ?>" size="<?php echo esc_attr( mb_strlen( $no_change ) + 2 ); ?>"/>
+						<input type="text" name="nakedcatplugins_bulk_edit_lang" value="" placeholder="<?php echo esc_attr( $no_change ); ?>" size="<?php echo absint( mb_strlen( $no_change ) + 2 ); ?>" class="nakedcatplugins-lang-code-input"/>
+						<span class="nakedcatplugins-lang-code-error" hidden><?php echo esc_html( $this->get_lang_code_error_message() ); ?></span>
 					</span>
 				</label>
 				<p class="description nakedcatplugins-lang-bulk-edit-note">
@@ -1124,7 +1223,7 @@ final class Lang_Attribute_Blocks {
 		wp_enqueue_script(
 			'nakedcatplugins-lang-attribute-blocks-list-table',
 			plugins_url( 'assets/js/list-table.js', NAKEDCATPLUGINS_LANG_ATTRIBUTE_BLOCKS_FILE ),
-			array( 'jquery', 'inline-edit-post' ),
+			array( 'jquery', 'inline-edit-post', $this->register_lang_code_assets() ),
 			filemtime( plugin_dir_path( NAKEDCATPLUGINS_LANG_ATTRIBUTE_BLOCKS_FILE ) . 'assets/js/list-table.js' ),
 			true
 		);
@@ -1145,7 +1244,7 @@ final class Lang_Attribute_Blocks {
 	public function add_plugin_action_links( $links ) {
 		$settings_link = sprintf(
 			'<a href="%s">%s</a>',
-			admin_url( 'options-writing.php' ),
+			esc_url( admin_url( 'options-writing.php' ) ),
 			esc_html__( 'Settings', 'lang-attribute-blocks' )
 		);
 		array_unshift( $links, $settings_link );

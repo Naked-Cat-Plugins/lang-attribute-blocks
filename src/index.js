@@ -13,6 +13,45 @@ import { registerPlugin } from '@wordpress/plugins';
 import { PluginDocumentSettingPanel } from '@wordpress/editor';
 import { useEntityProp } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
+import { useState } from '@wordpress/element';
+
+/**
+ * Language code field: swaps underscores while typing, tidies the code when the field is left,
+ * and shows an error under it when the code is not well formed. The checks live in
+ * assets/js/lang-code.js, shared with the classic editor and Quick/Bulk Edit.
+ */
+const LangCodeControl = ( { value, onChange, help, ...props } ) => {
+	const langCode = window.nakedCatPluginsLangCode;
+	const [ isFocused, setIsFocused ] = useState( false );
+	// Not flagged while typing, so half-typed codes are not shown as errors.
+	const isInvalid = !! langCode && ! isFocused && ! langCode.isValid( value );
+	return (
+		<TextControl
+			{ ...props }
+			value={ value }
+			onChange={ ( next ) => onChange( langCode ? langCode.normalizeTyping( next ) : next ) }
+			onFocus={ () => setIsFocused( true ) }
+			onBlur={ () => {
+				setIsFocused( false );
+				const normalized = langCode ? langCode.normalize( value ) : value.trim();
+				if ( normalized !== value ) {
+					onChange( normalized );
+				}
+			} }
+			aria-invalid={ isInvalid }
+			help={
+				isInvalid ? (
+					<>
+						<span style={ { display: 'block', color: '#cc1818' } }>
+							{ __( 'This is not a valid language code. Use a code like “fr”, “pt” or “pt-PT”.', 'lang-attribute-blocks' ) }
+						</span>
+						{ help }
+					</>
+				) : help
+			}
+		/>
+	);
+};
 
 
 /**
@@ -34,7 +73,7 @@ const addLangAttributesToGroupBlock = createHigherOrderComponent( ( BlockEdit ) 
 		const { attributes, setAttributes } = props;
 
 		// Get existing lang and dir attributes or set default values (trimmed)
-		const lang = ( attributes.lang || '' ).trim();
+		const lang = attributes.lang || '';
 		const dir = attributes.dir || 'ltr';
 
 		return (
@@ -45,11 +84,11 @@ const addLangAttributesToGroupBlock = createHigherOrderComponent( ( BlockEdit ) 
 						title={ __( 'Block Language', 'lang-attribute-blocks' ) }
 						initialOpen={ true }
 					>
-						<TextControl
+						<LangCodeControl
 							label={ __( 'Language Code', 'lang-attribute-blocks' ) }
 							value={ lang }
-							onChange={ ( value ) => setAttributes( { lang: value.trim() } ) }
-							placeholder={ window.nakedCatPluginsLangAttributeBlocks?.placeholderText || 'en (default website language)' }
+							onChange={ ( value ) => setAttributes( { lang: value } ) }
+							placeholder={ window.nakedCatPluginsLangAttributeBlocks?.placeholderText }
 							help={ __( "Valid language code for this block, like “fr” or “pt-PT”, if different from the website's or page's main language (shown as a placeholder)", 'lang-attribute-blocks' ) }
 						/>
 						<SelectControl
@@ -122,7 +161,8 @@ const withLangAttr = createHigherOrderComponent( ( BlockListBlock ) => {
 			return <BlockListBlock { ...props } />;
 		}
 
-		return <BlockListBlock { ...props } className={ 'naked-cat-plugins-has-lang-attr' } />
+		// Add to, not replace, any class set by other plugins' filters
+		return <BlockListBlock { ...props } className={ [ props.className, 'naked-cat-plugins-has-lang-attr' ].filter( Boolean ).join( ' ' ) } />
 	}
 }, 'withLangAttr' );
 
@@ -198,13 +238,13 @@ const PageLanguageControls = () => {
 		: ( meta !== undefined && typeof meta === 'object' );
 
 	const pageLang = isTemplateEditor
-		? ( templateLangMeta?.lang ?? '' ).trim()
-		: ( meta?._nakedcatplugins_page_lang ?? '' ).trim();
+		? ( templateLangMeta?.lang ?? '' )
+		: ( meta?._nakedcatplugins_page_lang ?? '' );
 	const pageDir = isTemplateEditor
 		? ( templateLangMeta?.dir ?? 'ltr' )
 		: ( meta?._nakedcatplugins_page_dir ?? 'ltr' );
 	const templateDefaultLang = ( template?.nakedcatplugins_lang_meta?.lang ?? '' ).trim();
-	const websiteLanguagePlaceholder = window.nakedCatPluginsLangAttributeBlocks?.placeholderText || 'en (default website language)';
+	const websiteLanguagePlaceholder = window.nakedCatPluginsLangAttributeBlocks?.placeholderText;
 	const fieldPlaceholder = ! isTemplateEditor && templateDefaultLang
 		? sprintf(
 			/* translators: %s: The template's default language code */
@@ -225,12 +265,12 @@ const PageLanguageControls = () => {
 			name="nakedcatplugins-page-lang-panel"
 			title={ isTemplateEditor ? __( 'Template Language', 'lang-attribute-blocks' ) : __( 'Page Language', 'lang-attribute-blocks' ) }
 		>
-			<TextControl
+			<LangCodeControl
 				label={ __( 'Language Code', 'lang-attribute-blocks' ) }
 				value={ pageLang }
 				onChange={ ( value ) => isTemplateEditor
-					? setTemplateLangMeta( { ...templateLangMeta, lang: value.trim() } )
-					: setMeta( { ...meta, _nakedcatplugins_page_lang: value.trim() } )
+					? setTemplateLangMeta( { ...templateLangMeta, lang: value } )
+					: setMeta( { ...meta, _nakedcatplugins_page_lang: value } )
 				}
 				placeholder={ fieldPlaceholder }
 				help={ fieldHelpText }

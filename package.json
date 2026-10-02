@@ -9,7 +9,7 @@
 		"build": "wp-scripts build --webpack-src-dir=src --output-path=build && npm run copy-index",
 		"start": "wp-scripts start --webpack-src-dir=src --output-path=build",
 		"copy-index": "cp src/index.php build/index.php",
-		"make-pot": "wp i18n make-pot . languages/lang-attribute-blocks.pot --slug=lang-attribute-blocks --domain=lang-attribute-blocks --exclude=node_modules"
+		"make-pot": "wp i18n make-pot . languages/lang-attribute-blocks.pot --slug=lang-attribute-blocks --domain=lang-attribute-blocks --exclude=node_modules,vendor,tests"
 	},
 	"keywords": [],
 	"devDependencies": {

@@ -1,0 +1,7 @@
+parameters:
+  level: 6
+  paths:
+    - lang-attribute-blocks.php
+    - includes
+  ignoreErrors:
+    - identifier: missingType.iterableValue

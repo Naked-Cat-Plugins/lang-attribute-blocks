@@ -7,6 +7,7 @@
 	<!-- Exclude somes files from PHPCS scanning -->
 	<exclude-pattern>/node_modules/*</exclude-pattern>
 	<exclude-pattern>/build/*</exclude-pattern>
+	<exclude-pattern>/vendor/*</exclude-pattern>
 	<exclude-pattern>*.js</exclude-pattern>
 
 	<!-- Only scan PHP files. -->
@@ -33,6 +34,17 @@
 		<exclude name="Squiz.Commenting.InlineComment.InvalidEndChar"/>
 		<!-- No Yoda conditions! -->
 		<exclude name="WordPress.PHP.YodaConditions.NotYoda"/>
+	</rule>
+
+	<!-- Tests: PHPUnit file naming, and they set the globals and request data on purpose -->
+	<rule ref="WordPress.Files.FileName">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.GlobalVariablesOverride">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.Security.NonceVerification">
+		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
 
 	<!-- Textdomain -->

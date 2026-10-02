@@ -19,8 +19,12 @@
 		}
 		const $data = $( '#post-' + postId ).find( '.nakedcatplugins-lang-data' );
 		const $edit = $( '#edit-' + postId );
-		$edit.find( 'input[name="nakedcatplugins_quick_edit_lang"]' ).val( $data.attr( 'data-lang' ) || '' );
+		const $lang = $edit.find( 'input[name="nakedcatplugins_quick_edit_lang"]' ).val( $data.attr( 'data-lang' ) || '' );
 		$edit.find( 'select[name="nakedcatplugins_quick_edit_dir"]' ).val( $data.attr( 'data-dir' ) === 'rtl' ? 'rtl' : 'ltr' );
+		// Flag a code saved before codes were checked.
+		if ( $lang.length && window.nakedCatPluginsLangCode ) {
+			window.nakedCatPluginsLangCode.check( $lang[ 0 ] );
+		}
 	};
 
 	// Removing the language makes the other two Bulk Edit fields meaningless.

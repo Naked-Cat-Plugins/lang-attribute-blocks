@@ -1,3 +1,6 @@
 node_modules
 build
 createzip.command
+# PHP dependencies and test cache (composer.lock IS committed)
+vendor/
+.phpunit.cache/

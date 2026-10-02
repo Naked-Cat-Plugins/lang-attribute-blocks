@@ -2,7 +2,7 @@
 Contributors: nakedcatplugins, webdados
 Tags: language, accessibility, block editor, Gutenberg, classic editor
 Requires at least: 6.6
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.2
 Stable tag: 3.2
 License: GPLv3
@@ -96,7 +96,7 @@ Here’s a [Gist example](https://gist.github.com/webdados/7179f5be4e224ba84867c
 
 = How can I contribute to this plugin? =
 
-[On GitHub](https://github.com/webdados/lang-attribute-blocks)
+[On GitHub](https://github.com/Naked-Cat-Plugins/lang-attribute-blocks)
 
 = How can I report security bugs? =
 
@@ -106,11 +106,14 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = TBA =
 * [NEW] See each page’s and post’s language in a new Language column, and set or remove it from Quick Edit or for many items at once with Bulk Edit
+* [NEW] Language codes are checked as you type: WordPress-style codes like pt_PT become pt-PT, and codes that are not valid show an error
 * [TWEAK] Requires WordPress 6.6 or newer, as the page and template language panel does not work on older versions
 * [FIX] On themes that add their own classes to the page’s main HTML element, such as Flatsome, pages with their own language lost those classes, which could break the theme’s layout
 * [FIX] The block language was applied to an inner element, or not at all, on Navigation blocks and on Cover and Content blocks set to an HTML element other than the default, instead of the whole block
 * [FIX] On right-to-left websites, pages and templates set to a left-to-right language kept the right-to-left text direction
+* [FIX] The language settings in the block editor were always shown in English, even when a translation was available
 * [FIX] The language field placeholder showed the editor’s own profile language instead of the website’s language when the two were different
+* [DEV] Tested up to WordPress 7.1
 
 = 3.2 - 2026-08-02 =
 * [FIX] Fatal error on WordPress 5.9-6.1 since the plugin relies on `WP_HTML_Tag_Processor`, only available from WordPress 6.2, bumped the declared minimum version to match
