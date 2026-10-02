@@ -34,6 +34,14 @@ final class Lang_Attribute_Blocks {
 	protected static $instance = null;
 
 	/**
+	 * The Language column key on the posts list tables.
+	 *
+	 * @since 3.3
+	 * @var string
+	 */
+	const LIST_TABLE_COLUMN = 'nakedcatplugins_lang';
+
+	/**
 	 * Defines the WordPress blocks that will support language attributes.
 	 *
 	 * This property stores an array of block type identifiers that the plugin will
@@ -154,6 +162,10 @@ final class Lang_Attribute_Blocks {
 		// Add classic editor metabox for page-level language settings
 		add_action( 'add_meta_boxes', array( $this, 'add_classic_editor_metabox' ) );
 		add_action( 'save_post', array( $this, 'save_classic_editor_metabox' ), 10, 2 );
+		// Add a Language column and Quick Edit / Bulk Edit fields to the posts list tables
+		add_action( 'admin_init', array( $this, 'add_list_table_hooks' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_list_table_assets' ) );
+		add_action( 'save_post', array( $this, 'save_quick_and_bulk_edit' ), 10, 2 );
 	}
 
 	/**
@@ -206,18 +218,6 @@ final class Lang_Attribute_Blocks {
 	}
 
 	/**
-	 * Override the HTML lang (and optionally dir) attribute for singular pages/posts.
-	 *
-	 * When a page or post has the '_nakedcatplugins_page_lang' meta set, this method
-	 * replaces the lang attribute on the <html> element with the stored value.
-	 * When '_nakedcatplugins_page_dir' is set to 'rtl', the dir attribute is also applied.
-	 *
-	 * @since 3.0
-	 * @hook language_attributes
-	 * @param string $output The existing language attributes string, e.g. 'lang="en-US"'.
-	 * @return string Modified language attributes string.
-	 */
-	/**
 	 * Get the website's language tag, as output on the frontend <html> element.
 	 *
 	 * WordPress' get_bloginfo( 'language' ) uses the current user's locale in wp-admin, so on a
@@ -241,6 +241,18 @@ final class Lang_Attribute_Blocks {
 		return $output;
 	}
 
+	/**
+	 * Override the HTML lang (and optionally dir) attribute for singular pages/posts.
+	 *
+	 * When a page or post has the '_nakedcatplugins_page_lang' meta set, this method
+	 * replaces the lang attribute on the <html> element with the stored value.
+	 * When '_nakedcatplugins_page_dir' is set to 'rtl', the dir attribute is also applied.
+	 *
+	 * @since 3.0
+	 * @hook language_attributes
+	 * @param string $output The existing language attributes string, e.g. 'lang="en-US"'.
+	 * @return string Modified language attributes string.
+	 */
 	public function apply_page_lang_attribute( $output ) {
 		if ( ! is_singular() ) {
 			return $output;
@@ -824,6 +836,299 @@ final class Lang_Attribute_Blocks {
 			$dir = in_array( $dir, array( 'ltr', 'rtl' ), true ) ? $dir : 'ltr';
 			update_post_meta( $post_id, '_nakedcatplugins_page_dir', $dir );
 		}
+	}
+
+	/**
+	 * Get post types whose list tables get the Language column and Quick Edit / Bulk Edit fields.
+	 *
+	 * Attachments are left out: the media list table has no Quick Edit or Bulk Edit.
+	 *
+	 * @since 3.3
+	 * @return array Post type names.
+	 */
+	private function get_list_table_post_types() {
+		$post_types = get_post_types(
+			array(
+				'public'  => true,
+				'show_ui' => true,
+			)
+		);
+		unset( $post_types['attachment'] );
+		return array_values( $post_types );
+	}
+
+	/**
+	 * Register the list table column and Quick Edit / Bulk Edit hooks.
+	 *
+	 * Runs on admin_init (not current_screen) so the column is also present when
+	 * a row is re-rendered by the Quick Edit AJAX request.
+	 *
+	 * @since 3.3
+	 * @hook admin_init
+	 * @return void
+	 */
+	public function add_list_table_hooks() {
+		foreach ( $this->get_list_table_post_types() as $post_type ) {
+			add_filter( 'manage_' . $post_type . '_posts_columns', array( $this, 'add_list_table_column' ) );
+			add_action( 'manage_' . $post_type . '_posts_custom_column', array( $this, 'render_list_table_column' ), 10, 2 );
+		}
+		add_action( 'quick_edit_custom_box', array( $this, 'render_quick_edit_fields' ), 10, 2 );
+		add_action( 'bulk_edit_custom_box', array( $this, 'render_bulk_edit_fields' ), 10, 2 );
+	}
+
+	/**
+	 * Add the Language column to the posts list table, before the Date column.
+	 *
+	 * @since 3.3
+	 * @param array $columns List table columns.
+	 * @return array Modified list table columns.
+	 */
+	public function add_list_table_column( $columns ) {
+		$column   = array( self::LIST_TABLE_COLUMN => __( 'Language', 'lang-attribute-blocks' ) );
+		$position = array_search( 'date', array_keys( $columns ), true );
+		if ( false === $position ) {
+			return array_merge( $columns, $column );
+		}
+		return array_slice( $columns, 0, $position, true ) + $column + array_slice( $columns, $position, null, true );
+	}
+
+	/**
+	 * Render the Language column cell.
+	 *
+	 * Also prints the raw values in a hidden element, read by the list table
+	 * script to pre-fill the Quick Edit fields.
+	 *
+	 * @since 3.3
+	 * @param string $column_name The column being rendered.
+	 * @param int    $post_id     The post ID.
+	 * @return void
+	 */
+	public function render_list_table_column( $column_name, $post_id ) {
+		if ( self::LIST_TABLE_COLUMN !== $column_name ) {
+			return;
+		}
+		$lang = trim( get_post_meta( $post_id, '_nakedcatplugins_page_lang', true ) );
+		$dir  = 'rtl' === trim( get_post_meta( $post_id, '_nakedcatplugins_page_dir', true ) ) ? 'rtl' : 'ltr';
+		printf(
+			'<span class="nakedcatplugins-lang-data" hidden data-lang="%s" data-dir="%s"></span>',
+			esc_attr( $lang ),
+			esc_attr( $dir )
+		);
+		if ( empty( $lang ) ) {
+			return;
+		}
+		echo esc_html( $lang );
+		if ( 'rtl' === $dir ) {
+			echo '<br/><span class="description">' . esc_html__( 'Right to left', 'lang-attribute-blocks' ) . '</span>';
+		}
+	}
+
+	/**
+	 * Render the Quick Edit fields.
+	 *
+	 * @since 3.3
+	 * @hook quick_edit_custom_box
+	 * @param string $column_name The column the fields are attached to.
+	 * @param string $post_type   The post type being listed.
+	 * @return void
+	 */
+	public function render_quick_edit_fields( $column_name, $post_type ) {
+		if ( self::LIST_TABLE_COLUMN !== $column_name || ! in_array( $post_type, $this->get_list_table_post_types(), true ) ) {
+			return;
+		}
+		$placeholder = sprintf(
+			/* translators: %s: The website's default language code */
+			__( '%s (default website language)', 'lang-attribute-blocks' ),
+			$this->get_website_language()
+		);
+		?>
+		<fieldset class="inline-edit-col-right nakedcatplugins-lang-quick-edit">
+			<div class="inline-edit-col">
+				<?php wp_nonce_field( 'nakedcatplugins_page_language_quick_edit', 'nakedcatplugins_page_language_quick_edit_nonce', false ); ?>
+				<label>
+					<span class="title"><?php esc_html_e( 'Language', 'lang-attribute-blocks' ); ?></span>
+					<span class="input-text-wrap">
+						<input type="text" name="nakedcatplugins_quick_edit_lang" value="" placeholder="<?php echo esc_attr( $placeholder ); ?>" size="<?php echo esc_attr( mb_strlen( $placeholder ) + 2 ); ?>"/>
+					</span>
+				</label>
+				<label>
+					<span class="title"><?php esc_html_e( 'Direction', 'lang-attribute-blocks' ); ?></span>
+					<select name="nakedcatplugins_quick_edit_dir">
+						<option value="ltr"><?php esc_html_e( 'Left to right', 'lang-attribute-blocks' ); ?></option>
+						<option value="rtl"><?php esc_html_e( 'Right to left', 'lang-attribute-blocks' ); ?></option>
+					</select>
+				</label>
+			</div>
+		</fieldset>
+		<?php
+	}
+
+	/**
+	 * Render the Bulk Edit fields.
+	 *
+	 * An empty language and "No Change" direction leave the selected items untouched.
+	 * The direction can be changed on its own, but only on items that have a language.
+	 *
+	 * @since 3.3
+	 * @hook bulk_edit_custom_box
+	 * @param string $column_name The column the fields are attached to.
+	 * @param string $post_type   The post type being listed.
+	 * @return void
+	 */
+	public function render_bulk_edit_fields( $column_name, $post_type ) {
+		if ( self::LIST_TABLE_COLUMN !== $column_name || ! in_array( $post_type, $this->get_list_table_post_types(), true ) ) {
+			return;
+		}
+		// WordPress core string, matches the other Bulk Edit fields.
+		// phpcs:ignore WordPress.WP.I18n.TextDomainMismatch
+		$no_change = wp_specialchars_decode( __( '&mdash; No Change &mdash;', 'default' ) );
+		?>
+		<fieldset class="inline-edit-col-right nakedcatplugins-lang-bulk-edit">
+			<div class="inline-edit-col">
+				<?php wp_nonce_field( 'nakedcatplugins_page_language_bulk_edit', 'nakedcatplugins_page_language_bulk_edit_nonce', false ); ?>
+				<label>
+					<span class="title"><?php esc_html_e( 'Language', 'lang-attribute-blocks' ); ?></span>
+					<span class="input-text-wrap">
+						<input type="text" name="nakedcatplugins_bulk_edit_lang" value="" placeholder="<?php echo esc_attr( $no_change ); ?>" size="<?php echo esc_attr( mb_strlen( $no_change ) + 2 ); ?>"/>
+					</span>
+				</label>
+				<p class="description nakedcatplugins-lang-bulk-edit-note">
+					<?php
+					printf(
+						/* translators: %s: The website's default language code */
+						esc_html__( 'Leave empty to keep each item’s current language. Items without a language use their template’s or the website’s default (%s).', 'lang-attribute-blocks' ),
+						esc_html( $this->get_website_language() )
+					);
+					?>
+				</p>
+				<label>
+					<span class="title"><?php esc_html_e( 'Direction', 'lang-attribute-blocks' ); ?></span>
+					<select name="nakedcatplugins_bulk_edit_dir">
+						<option value=""><?php echo esc_html( $no_change ); ?></option>
+						<option value="ltr"><?php esc_html_e( 'Left to right', 'lang-attribute-blocks' ); ?></option>
+						<option value="rtl"><?php esc_html_e( 'Right to left', 'lang-attribute-blocks' ); ?></option>
+					</select>
+				</label>
+				<label class="alignleft">
+					<input type="checkbox" name="nakedcatplugins_bulk_edit_remove" value="1"/>
+					<span class="checkbox-title">
+						<?php
+						printf(
+							/* translators: %s: The website's default language code */
+							esc_html__( 'Remove the language and direction, and use the template or website default (%s)', 'lang-attribute-blocks' ),
+							esc_html( $this->get_website_language() )
+						);
+						?>
+					</span>
+				</label>
+			</div>
+		</fieldset>
+		<?php
+	}
+
+	/**
+	 * Save the Quick Edit and Bulk Edit values.
+	 *
+	 * Each form has its own nonce, so this only acts when one of them was submitted
+	 * and never touches the meta on any other kind of save.
+	 *
+	 * @since 3.3
+	 * @hook save_post
+	 * @param int      $post_id The post ID being saved.
+	 * @param \WP_Post $post    The post object being saved.
+	 * @return void
+	 */
+	public function save_quick_and_bulk_edit( int $post_id, \WP_Post $post ) {
+		// Bulk Edit submits the list table form with GET, Quick Edit posts over AJAX.
+		$is_quick_edit = isset( $_POST['nakedcatplugins_page_language_quick_edit_nonce'] )
+			&& wp_verify_nonce( sanitize_key( $_POST['nakedcatplugins_page_language_quick_edit_nonce'] ), 'nakedcatplugins_page_language_quick_edit' );
+		$is_bulk_edit  = isset( $_REQUEST['nakedcatplugins_page_language_bulk_edit_nonce'] )
+			&& wp_verify_nonce( sanitize_key( $_REQUEST['nakedcatplugins_page_language_bulk_edit_nonce'] ), 'nakedcatplugins_page_language_bulk_edit' );
+		if ( ! $is_quick_edit && ! $is_bulk_edit ) {
+			return;
+		}
+		if ( wp_is_post_revision( $post_id ) || ! in_array( $post->post_type, $this->get_list_table_post_types(), true ) ) {
+			return;
+		}
+		$post_type_object = get_post_type_object( $post->post_type );
+		if ( ! current_user_can( $post_type_object->cap->edit_post, $post_id ) ) {
+			return;
+		}
+
+		if ( $is_quick_edit ) {
+			$lang = isset( $_POST['nakedcatplugins_quick_edit_lang'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['nakedcatplugins_quick_edit_lang'] ) ) ) : '';
+			$dir  = isset( $_POST['nakedcatplugins_quick_edit_dir'] ) ? sanitize_text_field( wp_unslash( $_POST['nakedcatplugins_quick_edit_dir'] ) ) : 'ltr';
+			$this->save_page_lang_meta( $post_id, $lang, $dir );
+			return;
+		}
+
+		if ( ! empty( $_REQUEST['nakedcatplugins_bulk_edit_remove'] ) ) {
+			$this->save_page_lang_meta( $post_id, '', '' );
+			return;
+		}
+		$lang = isset( $_REQUEST['nakedcatplugins_bulk_edit_lang'] ) ? trim( sanitize_text_field( wp_unslash( $_REQUEST['nakedcatplugins_bulk_edit_lang'] ) ) ) : '';
+		$dir  = isset( $_REQUEST['nakedcatplugins_bulk_edit_dir'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['nakedcatplugins_bulk_edit_dir'] ) ) : '';
+		if ( '' === $lang && '' === $dir ) {
+			return;
+		}
+		// Keep whatever was not changed.
+		if ( '' === $lang ) {
+			$lang = trim( get_post_meta( $post_id, '_nakedcatplugins_page_lang', true ) );
+			if ( '' === $lang ) {
+				return; // A direction without a language is never stored.
+			}
+		}
+		if ( '' === $dir ) {
+			$dir = trim( get_post_meta( $post_id, '_nakedcatplugins_page_dir', true ) );
+		}
+		$this->save_page_lang_meta( $post_id, $lang, $dir );
+	}
+
+	/**
+	 * Save or delete the page language meta.
+	 *
+	 * An empty language deletes both fields, since a direction without a language is never stored.
+	 *
+	 * @since 3.3
+	 * @param int    $post_id The post ID.
+	 * @param string $lang    Sanitized language code, or empty to delete.
+	 * @param string $dir     'ltr' or 'rtl', anything else is saved as 'ltr'.
+	 * @return void
+	 */
+	private function save_page_lang_meta( int $post_id, string $lang, string $dir ) {
+		if ( '' === $lang ) {
+			delete_post_meta( $post_id, '_nakedcatplugins_page_lang' );
+			delete_post_meta( $post_id, '_nakedcatplugins_page_dir' );
+			return;
+		}
+		update_post_meta( $post_id, '_nakedcatplugins_page_lang', $lang );
+		update_post_meta( $post_id, '_nakedcatplugins_page_dir', 'rtl' === $dir ? 'rtl' : 'ltr' );
+	}
+
+	/**
+	 * Enqueue the script that pre-fills Quick Edit and the column styles on the posts list tables.
+	 *
+	 * @since 3.3
+	 * @hook admin_enqueue_scripts
+	 * @param string $hook_suffix The current admin page.
+	 * @return void
+	 */
+	public function enqueue_list_table_assets( $hook_suffix ) {
+		if ( 'edit.php' !== $hook_suffix ) {
+			return;
+		}
+		$screen = get_current_screen();
+		if ( ! $screen || ! in_array( $screen->post_type, $this->get_list_table_post_types(), true ) ) {
+			return;
+		}
+		wp_enqueue_script(
+			'nakedcatplugins-lang-attribute-blocks-list-table',
+			plugins_url( 'assets/js/list-table.js', NAKEDCATPLUGINS_LANG_ATTRIBUTE_BLOCKS_FILE ),
+			array( 'jquery', 'inline-edit-post' ),
+			filemtime( plugin_dir_path( NAKEDCATPLUGINS_LANG_ATTRIBUTE_BLOCKS_FILE ) . 'assets/js/list-table.js' ),
+			true
+		);
+		wp_add_inline_style( 'wp-admin', '.fixed .column-' . self::LIST_TABLE_COLUMN . ' { width: 10%; } .inline-edit-row .nakedcatplugins-lang-quick-edit input[type="text"], .inline-edit-row .nakedcatplugins-lang-bulk-edit input[type="text"] { width: auto; max-width: 100%; } .inline-edit-row .nakedcatplugins-lang-bulk-edit-note { margin: 0 0 .5em 6em; }' );
 	}
 
 	/**

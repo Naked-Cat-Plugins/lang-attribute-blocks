@@ -55,6 +55,7 @@ Banner photo by [Hannah Wright](https://unsplash.com/@hannahwrightdesigner?utm_c
 
 * Set the language and text direction at the **template level** in the Site Editor: a "Template Language" panel lets you define the default language for all pages and posts using that template, which is automatically applied unless overridden at the individual post or page level
 * Set the language and text direction for an **individual page or post**, both on the blocks and classic editor: a "Page Language" panel in the Document Settings sidebar overrides the HTML `lang` and `dir` attributes for that specific page, taking precedence over any template-level setting
+* See the language set on each page or post in a **Language column** on the Pages and Posts lists, and change it with **Quick Edit**, or for many items at once with **Bulk Edit**
 * Add `lang` and `dir` attributes to Group, Columns, Cover, and other specific WordPress Blocks, mentioned above
 * Show visual outline around blocks that have a language attribute set - For easy identification of blocks you have already set to a different language during your editing process, only for Administrators and Editors, and if enabled in Settings - Writing
 
@@ -104,6 +105,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = TBA =
+* [NEW] See each page’s and post’s language in a new Language column, and set or remove it from Quick Edit or for many items at once with Bulk Edit
 * [FIX] The language field placeholder showed the editor’s own profile language instead of the website’s language when the two were different
 
 = 3.2 - 2026-08-02 =
