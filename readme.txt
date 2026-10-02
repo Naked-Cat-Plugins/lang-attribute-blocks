@@ -4,7 +4,7 @@ Tags: language, accessibility, block editor, Gutenberg, classic editor
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 7.2
-Stable tag: 3.2
+Stable tag: 3.3
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -106,7 +106,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= TBA =
+= 3.3 - 2026-10-02 =
 * [NEW] See each page’s and post’s language in a new Language column, and set or remove it from Quick Edit or for many items at once with Bulk Edit
 * [NEW] Language codes are checked as you type: WordPress-style codes like pt_PT become pt-PT, and codes that are not valid show an error
 * [TWEAK] Requires WordPress 6.6 or newer, as the page and template language panel does not work on older versions

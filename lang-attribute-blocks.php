@@ -3,7 +3,7 @@
  * Plugin Name:          Language Attribute for Container Blocks and Pages/Posts
  * Plugin URI:           https://wordpress.org/plugins/lang-attribute-blocks/
  * Description:          Add `lang` and `dir` attributes to Group, Columns, Cover, and other specific WordPress Blocks, Templates, or to specific Posts/pages.
- * Version:              3.2
+ * Version:              3.3
  * Author:               Naked Cat Plugins (by Webdados)
  * Author URI:           https://nakedcatplugins.com
  * Text Domain:          lang-attribute-blocks
