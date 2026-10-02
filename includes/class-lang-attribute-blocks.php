@@ -217,6 +217,30 @@ final class Lang_Attribute_Blocks {
 	 * @param string $output The existing language attributes string, e.g. 'lang="en-US"'.
 	 * @return string Modified language attributes string.
 	 */
+	/**
+	 * Get the website's language tag, as output on the frontend <html> element.
+	 *
+	 * WordPress' get_bloginfo( 'language' ) uses the current user's locale in wp-admin, so on a
+	 * pt_PT website edited by a user with en_US set on their profile it returns "en-US".
+	 * This mirrors its logic using the website's locale instead.
+	 *
+	 * @since 3.3
+	 * @return string Language tag, e.g. 'pt-PT'.
+	 */
+	private function get_website_language() {
+		$locale   = get_locale();
+		$switched = switch_to_locale( $locale );
+		// phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Core string, see get_bloginfo().
+		$output = __( 'html_lang_attribute' );
+		if ( $switched ) {
+			restore_previous_locale();
+		}
+		if ( 'html_lang_attribute' === $output || preg_match( '/[^a-zA-Z0-9-]/', $output ) ) {
+			$output = str_replace( '_', '-', $locale );
+		}
+		return $output;
+	}
+
 	public function apply_page_lang_attribute( $output ) {
 		if ( ! is_singular() ) {
 			return $output;
@@ -506,14 +530,14 @@ final class Lang_Attribute_Blocks {
 			'nakedCatPluginsLangAttributeBlocks',
 			array(
 				'supportedBlocks'   => $this->blocks,
-				'siteLanguage'      => get_bloginfo( 'language' ), // This will get the site language (e.g., 'en-US'),
+				'siteLanguage'      => $this->get_website_language(), // The website language (e.g., 'pt-PT'), regardless of the user's locale
 				'currentTheme'      => get_stylesheet(),
 				'editablePostTypes' => $this->get_page_lang_meta_post_types(),
 				'highlightEnabled'  => get_option( 'nakedcatplugins_lang_attr_highlight_blocks', false ),
 				'placeholderText'   => sprintf(
 					/* translators: %s: The website's default language code */
 					__( '%s (default website language)', 'lang-attribute-blocks' ),
-					get_bloginfo( 'language' )
+					$this->get_website_language()
 				),
 			)
 		);
@@ -713,7 +737,7 @@ final class Lang_Attribute_Blocks {
 		$placeholder = sprintf(
 			/* translators: %s: The website's default language code */
 			__( '%s (default website language)', 'lang-attribute-blocks' ),
-			get_bloginfo( 'language' )
+			$this->get_website_language()
 		);
 		?>
 		<p>

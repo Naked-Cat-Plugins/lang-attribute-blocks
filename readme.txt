@@ -103,6 +103,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= TBA =
+* [FIX] The language field placeholder showed the editor’s own profile language instead of the website’s language when the two were different
+
 = 3.2 - 2026-08-02 =
 * [FIX] Fatal error on WordPress 5.9-6.1 since the plugin relies on `WP_HTML_Tag_Processor`, only available from WordPress 6.2, bumped the declared minimum version to match
 
