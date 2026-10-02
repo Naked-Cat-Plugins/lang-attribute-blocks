@@ -1,7 +1,7 @@
 === Language Attribute for Container Blocks and Pages/Posts ===
 Contributors: nakedcatplugins, webdados
 Tags: language, accessibility, block editor, Gutenberg, classic editor
-Requires at least: 6.2
+Requires at least: 6.6
 Tested up to: 7.0
 Requires PHP: 7.2
 Stable tag: 3.2
@@ -106,6 +106,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = TBA =
 * [NEW] See each page’s and post’s language in a new Language column, and set or remove it from Quick Edit or for many items at once with Bulk Edit
+* [TWEAK] Requires WordPress 6.6 or newer, as the page and template language panel does not work on older versions
+* [FIX] On themes that add their own classes to the page’s main HTML element, such as Flatsome, pages with their own language lost those classes, which could break the theme’s layout
+* [FIX] The block language was applied to an inner element, or not at all, on Navigation blocks and on Cover and Content blocks set to an HTML element other than the default, instead of the whole block
+* [FIX] On right-to-left websites, pages and templates set to a left-to-right language kept the right-to-left text direction
 * [FIX] The language field placeholder showed the editor’s own profile language instead of the website’s language when the two were different
 
 = 3.2 - 2026-08-02 =

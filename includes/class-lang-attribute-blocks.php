@@ -244,9 +244,10 @@ final class Lang_Attribute_Blocks {
 	/**
 	 * Override the HTML lang (and optionally dir) attribute for singular pages/posts.
 	 *
-	 * When a page or post has the '_nakedcatplugins_page_lang' meta set, this method
-	 * replaces the lang attribute on the <html> element with the stored value.
-	 * When '_nakedcatplugins_page_dir' is set to 'rtl', the dir attribute is also applied.
+	 * When a page or post has the '_nakedcatplugins_page_lang' meta set, or else its
+	 * template has one, this method replaces the lang attribute on the <html> element
+	 * with that value, and applies the direction set alongside it. On RTL websites,
+	 * core outputs dir="rtl", which is replaced so left-to-right pages are not left as RTL.
 	 *
 	 * @since 3.0
 	 * @hook language_attributes
@@ -257,43 +258,50 @@ final class Lang_Attribute_Blocks {
 		if ( ! is_singular() ) {
 			return $output;
 		}
-		$post_id   = get_queried_object_id();
-		$page_lang = trim( get_post_meta( $post_id, '_nakedcatplugins_page_lang', true ) );
-		$page_dir  = trim( get_post_meta( $post_id, '_nakedcatplugins_page_dir', true ) );
-
-		$template_lang_and_dir = $this->get_template_lang_and_dir( $post_id );
-		if ( empty( $page_lang ) && ! empty( $template_lang_and_dir['lang'] ) ) {
-			$page_lang = $template_lang_and_dir['lang'];
-		}
-		if ( empty( $page_dir ) && ! empty( $template_lang_and_dir['dir'] ) ) {
-			$page_dir = $template_lang_and_dir['dir'];
+		list( 'lang' => $page_lang, 'dir' => $page_dir ) = $this->get_page_lang_and_dir( get_queried_object_id() );
+		if ( empty( $page_lang ) ) {
+			return $output;
 		}
 
-		if ( ! empty( $page_lang ) ) {
-			$safe_lang = esc_attr( $page_lang );
-			if ( strpos( $output, 'lang=' ) !== false ) {
-				$output = preg_replace( '/lang="[^"]*"/', 'lang="' . $safe_lang . '"', $output );
-			} else {
-				$output .= ' lang="' . $safe_lang . '"';
-			}
-			// Add our class name
-			if ( strpos( $output, 'class=' ) !== false ) {
-				$output = preg_replace( '/class="([^"]*)"/', 'class="$1 naked-cat-plugins-post-has-lang-attr"', $output );
-			} else {
-				$output .= ' class="naked-cat-plugins-post-has-lang-attr"';
-			}
+		$safe_lang = esc_attr( $page_lang );
+		if ( strpos( $output, 'lang=' ) !== false ) {
+			$output = preg_replace( '/lang="[^"]*"/', 'lang="' . $safe_lang . '"', $output );
+		} else {
+			$output .= ' lang="' . $safe_lang . '"';
 		}
 
-		if ( ! empty( $page_dir ) && 'rtl' === $page_dir ) {
-			$safe_dir = esc_attr( $page_dir );
-			if ( strpos( $output, 'dir=' ) !== false ) {
-				$output = preg_replace( '/dir="[^"]*"/', 'dir="' . $safe_dir . '"', $output );
-			} else {
-				$output .= ' dir="' . $safe_dir . '"';
-			}
+		// Core only outputs dir on RTL websites, so replace it whatever the page direction is,
+		// and only add it when the page is RTL.
+		if ( strpos( $output, 'dir=' ) !== false ) {
+			$output = preg_replace( '/dir="[^"]*"/', 'dir="' . $page_dir . '"', $output );
+		} elseif ( 'rtl' === $page_dir ) {
+			$output .= ' dir="rtl"';
 		}
 
 		return $output;
+	}
+
+	/**
+	 * Get the language and direction that apply to a singular page/post.
+	 *
+	 * The post's own language wins, or else its template's. The direction always comes
+	 * from the same place as the language: the dir meta has a registered 'ltr' default,
+	 * so it can't be used to tell whether the post set one.
+	 *
+	 * @since 3.3
+	 * @param int $post_id The singular post ID.
+	 * @return array{lang:string,dir:string} Language (empty if none applies) and direction ('ltr' or 'rtl').
+	 */
+	private function get_page_lang_and_dir( int $post_id ) {
+		$lang = trim( get_post_meta( $post_id, '_nakedcatplugins_page_lang', true ) );
+		$dir  = trim( get_post_meta( $post_id, '_nakedcatplugins_page_dir', true ) );
+		if ( empty( $lang ) ) {
+			list( 'lang' => $lang, 'dir' => $dir ) = $this->get_template_lang_and_dir( $post_id );
+		}
+		return array(
+			'lang' => $lang,
+			'dir'  => 'rtl' === $dir ? 'rtl' : 'ltr',
+		);
 	}
 
 	/**
@@ -465,7 +473,7 @@ final class Lang_Attribute_Blocks {
 	 * 1. Checks if a block has a language attribute specified
 	 * 2. Sanitizes the language code and direction values
 	 * 3. Uses WP_HTML_Tag_Processor to safely modify the HTML
-	 * 4. Targets the first div element in the block content
+	 * 4. Targets the block's wrapper, the first element in the block content
 	 * 5. Returns the modified HTML with language attributes applied
 	 *
 	 * @since 1.0
@@ -479,32 +487,13 @@ final class Lang_Attribute_Blocks {
 			$lang          = trim( esc_attr( $block['attrs']['lang'] ) );
 			$dir           = trim( isset( $block['attrs']['dir'] ) ? esc_attr( $block['attrs']['dir'] ) : 'ltr' );
 			$tag_processor = new \WP_HTML_Tag_Processor( $block_content );
-			// Depending on the block type, we will set the tag to be processed
-			switch ( $block['blockName'] ) {
-				case 'core/navigation-submenu':
-					$tag = 'li';
-					break;
-				case 'core/page-list':
-					$tag = 'ul';
-					break;
-				case 'core/group':
-					// We need to find out the correct tag for the group block
-					if ( isset( $block['attrs']['tagName'] ) && ! empty( trim( $block['attrs']['tagName'] ) ) ) {
-						$tag = $block['attrs']['tagName'];
-					} else {
-						// Default to div if no specific tag is found
-						$tag = 'div';
-					}
-					break;
-				default:
-					// If no specific tag is found, we default to a div
-					$tag = 'div';
-					break;
-
+			// The first tag is the block's wrapper for every supported block, whatever its name:
+			// <nav> for Navigation, <li> for Submenu, <ul> for Page List, or the tagName chosen
+			// on Group, Cover and Post Content.
+			if ( $tag_processor->next_tag() ) {
+				$tag_processor->set_attribute( 'lang', $lang );
+				$tag_processor->set_attribute( 'dir', $dir );
 			}
-			$tag_processor->next_tag( $tag );
-			$tag_processor->set_attribute( 'lang', $lang );
-			$tag_processor->set_attribute( 'dir', $dir );
 			return $tag_processor->get_updated_html();
 		}
 		return $block_content;
@@ -606,6 +595,17 @@ final class Lang_Attribute_Blocks {
 				);
 				// Add custom color override if specified
 				$this->maybe_add_custom_highlight_color();
+				// Outline the whole page when it has its own (or its template's) language. Done here rather
+				// than with a class on <html>, which would clash with the class many themes print there.
+				if ( is_singular() ) {
+					$page_lang_and_dir = $this->get_page_lang_and_dir( get_queried_object_id() );
+					if ( ! empty( $page_lang_and_dir['lang'] ) ) {
+						wp_add_inline_style(
+							'nakedcatplugins-lang-attribute-blocks-style',
+							'html { outline: 3px dashed var(--nakedcatplugins-lang-attr-highlight-color) !important; outline-offset: -3px; }'
+						);
+					}
+				}
 			}
 		}
 	}

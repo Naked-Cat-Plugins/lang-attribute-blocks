@@ -7,7 +7,7 @@
  * Author:               Naked Cat Plugins (by Webdados)
  * Author URI:           https://nakedcatplugins.com
  * Text Domain:          lang-attribute-blocks
- * Requires at least:    6.2
+ * Requires at least:    6.6
  * Tested up to:         7.0
  * Requires PHP:         7.2
  * License:              GPLv3

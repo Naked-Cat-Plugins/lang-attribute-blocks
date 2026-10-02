@@ -7,8 +7,3 @@ body:not(.block-editor-page) *[lang],
 	outline: 3px dashed var(--nakedcatplugins-lang-attr-highlight-color) !important;
 	outline-offset: 2px;
 }
-
-html.naked-cat-plugins-post-has-lang-attr {
-	outline: 3px dashed var(--nakedcatplugins-lang-attr-highlight-color) !important;
-	outline-offset: -3px;
-}
