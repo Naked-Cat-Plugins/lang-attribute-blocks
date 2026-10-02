@@ -62,8 +62,10 @@ Banner photo by [Hannah Wright](https://unsplash.com/@hannahwrightdesigner?utm_c
 == Screenshots ==
 
 1. Using the block editor to add a language attribute to a Group block
-2. The `lang` and `dir attributes rendered on the frontend
+2. The `lang` and `dir` attributes rendered on the frontend
 3. Using the highlighting option during the editing process
+4. The Language column on the Pages list, and setting a page’s language with Quick Edit
+5. Setting the language of several pages at once with Bulk Edit
 
 == Installation ==
 
