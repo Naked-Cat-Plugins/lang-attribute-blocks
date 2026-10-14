@@ -155,6 +155,9 @@ final class Lang_Attribute_Blocks {
 		add_action( 'init', array( $this, 'register_page_lang_meta' ) );
 		// Apply page-level language attribute to the <html> element
 		add_filter( 'language_attributes', array( $this, 'apply_page_lang_attribute' ) );
+		// Yoast SEO: declare the page's own language in its schema and Open Graph locale
+		add_filter( 'wpseo_schema_graph', array( $this, 'apply_page_lang_to_yoast_schema' ) );
+		add_filter( 'wpseo_og_locale', array( $this, 'apply_page_lang_to_yoast_og_locale' ) );
 		// Enqueues JavaScript and CSS assets for the WordPress block editor
 		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_block_editor_assets' ) );
 		// Enqueue block styles in editor iframe context.
@@ -338,6 +341,68 @@ final class Lang_Attribute_Blocks {
 			}
 		}
 		return implode( '-', $subtags );
+	}
+
+	/**
+	 * The language set for the current singular page/post, or its template.
+	 *
+	 * @since 3.4
+	 * @return string Language code, empty when none is set or the request is not singular.
+	 */
+	private function get_current_page_lang() {
+		if ( ! is_singular() ) {
+			return '';
+		}
+		return $this->get_page_lang_and_dir( get_queried_object_id() )['lang'];
+	}
+
+	/**
+	 * Set the page's own language on the page-level pieces of Yoast SEO's schema.
+	 *
+	 * Yoast declares every piece in the website's language. The pieces that describe the
+	 * page itself (the web page, the article, its images) get the page's language instead.
+	 * The WebSite and Organization pieces describe the whole website and keep its language.
+	 *
+	 * @since 3.4
+	 * @hook wpseo_schema_graph
+	 * @param mixed $graph The schema graph pieces (an array, unless another filter broke it).
+	 * @return mixed The schema graph pieces.
+	 */
+	public function apply_page_lang_to_yoast_schema( $graph ) {
+		$page_lang = $this->get_current_page_lang();
+		if ( empty( $page_lang ) || ! is_array( $graph ) ) {
+			return $graph;
+		}
+		foreach ( $graph as $key => $piece ) {
+			if ( ! is_array( $piece ) || ! isset( $piece['inLanguage'] ) ) {
+				continue;
+			}
+			$types = isset( $piece['@type'] ) ? (array) $piece['@type'] : array();
+			if ( array_intersect( $types, array( 'WebSite', 'Organization' ) ) ) {
+				continue;
+			}
+			$graph[ $key ]['inLanguage'] = $page_lang;
+		}
+		return $graph;
+	}
+
+	/**
+	 * Set Yoast SEO's Open Graph locale from the page's own language.
+	 *
+	 * Open Graph locales are a language and a region (pt_PT), so a language set without a
+	 * region (pt) leaves Yoast's locale unchanged rather than guessing the region.
+	 *
+	 * @since 3.4
+	 * @hook wpseo_og_locale
+	 * @param string $locale The Open Graph locale, e.g. 'en_US'.
+	 * @return string The Open Graph locale.
+	 */
+	public function apply_page_lang_to_yoast_og_locale( $locale ) {
+		$subtags = explode( '-', $this->get_current_page_lang() );
+		if ( count( $subtags ) < 2 || ! preg_match( '/^[a-z]{2,3}$/i', $subtags[0] ) || ! preg_match( '/^[a-z]{2}$/i', $subtags[1] ) ) {
+			return $locale;
+		}
+		return strtolower( $subtags[0] ) . '_' . strtoupper( $subtags[1] );
 	}
 
 	/**

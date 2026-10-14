@@ -106,6 +106,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= TBA =
+* [NEW] Yoast SEO compatibility: a page or post with its own language now declares it in Yoast’s structured data and social sharing tags, not only on the page itself
+
 = 3.3 - 2026-10-02 =
 * [NEW] See each page’s and post’s language in a new Language column, and set or remove it from Quick Edit or for many items at once with Bulk Edit
 * [NEW] Language codes are checked as you type: WordPress-style codes like pt_PT become pt-PT, and codes that are not valid show an error
