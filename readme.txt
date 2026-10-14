@@ -107,6 +107,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = TBA =
+* [NEW] Posts with their own language keep it when listed elsewhere: on the blog page, archives and search results, their title and excerpt are marked in their language, so screen readers and search engines read them correctly
 * [NEW] Yoast SEO compatibility: a page or post with its own language now declares it in Yoast’s structured data and social sharing tags, not only on the page itself
 
 = 3.3 - 2026-10-02 =

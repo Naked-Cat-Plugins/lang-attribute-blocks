@@ -158,6 +158,11 @@ final class Lang_Attribute_Blocks {
 		// Yoast SEO: declare the page's own language in its schema and Open Graph locale
 		add_filter( 'wpseo_schema_graph', array( $this, 'apply_page_lang_to_yoast_schema' ) );
 		add_filter( 'wpseo_og_locale', array( $this, 'apply_page_lang_to_yoast_og_locale' ) );
+		// Posts listed outside their own page (blog, archives, search): their language around the title and excerpt
+		add_filter( 'the_title', array( $this, 'apply_post_lang_to_listed_title' ), 20, 2 );
+		add_filter( 'the_excerpt', array( $this, 'apply_post_lang_to_listed_excerpt' ), 20 );
+		add_filter( 'render_block_core/post-title', array( $this, 'apply_post_lang_to_listed_block' ), 10, 3 );
+		add_filter( 'render_block_core/post-excerpt', array( $this, 'apply_post_lang_to_listed_block' ), 10, 3 );
 		// Enqueues JavaScript and CSS assets for the WordPress block editor
 		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_block_editor_assets' ) );
 		// Enqueue block styles in editor iframe context.
@@ -403,6 +408,136 @@ final class Lang_Attribute_Blocks {
 			return $locale;
 		}
 		return strtolower( $subtags[0] ) . '_' . strtoupper( $subtags[1] );
+	}
+
+	/**
+	 * The language of the document being shown: the singular page's own, or the website's.
+	 *
+	 * @since 3.4
+	 * @return string Language code.
+	 */
+	private function get_document_lang() {
+		$page_lang = $this->get_current_page_lang();
+		return '' !== $page_lang ? $page_lang : get_bloginfo( 'language' );
+	}
+
+	/**
+	 * Language and direction of a post shown in a list, when they differ from the document's.
+	 *
+	 * Only on frontend views, so the admin, the REST API, feeds and the browser tab title
+	 * (which is built outside the loop) never get markup in a plain text value.
+	 *
+	 * @since 3.4
+	 * @param int $post_id The listed post's ID.
+	 * @return array{lang:string,dir:string}|null Null when nothing should be added.
+	 */
+	private function get_listed_post_lang_and_dir( $post_id ) {
+		if ( is_admin() || is_feed() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || wp_doing_ajax() ) {
+			return null;
+		}
+		$post_id = (int) $post_id;
+		if ( ! $post_id ) {
+			return null;
+		}
+		$lang_and_dir = $this->get_page_lang_and_dir( $post_id );
+		if ( '' === $lang_and_dir['lang'] || 0 === strcasecmp( $lang_and_dir['lang'], $this->get_document_lang() ) ) {
+			return null;
+		}
+		/**
+		 * Filters whether to mark the language of a post listed outside its own page.
+		 *
+		 * @since 3.4
+		 * @param bool $mark    Whether to add the lang attribute. Default true.
+		 * @param int  $post_id The listed post's ID.
+		 */
+		if ( ! apply_filters( 'nakedcatplugins_lang_attribute_blocks_mark_listed_post', true, $post_id ) ) {
+			return null;
+		}
+		return $lang_and_dir;
+	}
+
+	/**
+	 * Attributes string for a wrapper element, e.g. ` lang="pt-PT"` plus ` dir="rtl"` when RTL.
+	 *
+	 * @since 3.4
+	 * @param array{lang:string,dir:string} $lang_and_dir Language and direction.
+	 * @return string
+	 */
+	private function wrapper_attributes( array $lang_and_dir ) {
+		$attributes = ' lang="' . esc_attr( $lang_and_dir['lang'] ) . '"';
+		if ( 'rtl' === $lang_and_dir['dir'] || is_rtl() ) {
+			$attributes .= ' dir="' . esc_attr( $lang_and_dir['dir'] ) . '"';
+		}
+		return $attributes;
+	}
+
+	/**
+	 * Wrap the title of a post listed in a classic theme's loop in its own language.
+	 *
+	 * @since 3.4
+	 * @hook the_title
+	 * @param string $title   The post title.
+	 * @param int    $post_id The post ID.
+	 * @return string
+	 */
+	public function apply_post_lang_to_listed_title( $title, $post_id = 0 ) {
+		if ( '' === trim( (string) $title ) || ! in_the_loop() ) {
+			return $title;
+		}
+		$lang_and_dir = $this->get_listed_post_lang_and_dir( $post_id );
+		if ( ! $lang_and_dir ) {
+			return $title;
+		}
+		return '<span' . $this->wrapper_attributes( $lang_and_dir ) . '>' . $title . '</span>';
+	}
+
+	/**
+	 * Wrap the excerpt of a post listed in a classic theme's loop in its own language.
+	 *
+	 * @since 3.4
+	 * @hook the_excerpt
+	 * @param string $excerpt The excerpt HTML.
+	 * @return string
+	 */
+	public function apply_post_lang_to_listed_excerpt( $excerpt ) {
+		if ( '' === trim( (string) $excerpt ) || ! in_the_loop() ) {
+			return $excerpt;
+		}
+		$lang_and_dir = $this->get_listed_post_lang_and_dir( get_the_ID() );
+		if ( ! $lang_and_dir ) {
+			return $excerpt;
+		}
+		return '<div' . $this->wrapper_attributes( $lang_and_dir ) . '>' . $excerpt . '</div>';
+	}
+
+	/**
+	 * Add the post's language to Post Title and Post Excerpt blocks in a block theme's Query Loop.
+	 *
+	 * @since 3.4
+	 * @hook render_block_core/post-title, render_block_core/post-excerpt
+	 * @param string         $block_content The block HTML.
+	 * @param array          $block         The block.
+	 * @param \WP_Block|null $instance      The block instance, with the post ID in its context.
+	 * @return string
+	 */
+	public function apply_post_lang_to_listed_block( $block_content, $block, $instance = null ) {
+		if ( '' === trim( (string) $block_content ) || ! $instance instanceof \WP_Block || empty( $instance->context['postId'] ) ) {
+			return $block_content;
+		}
+		$lang_and_dir = $this->get_listed_post_lang_and_dir( $instance->context['postId'] );
+		if ( ! $lang_and_dir ) {
+			return $block_content;
+		}
+		$tag_processor = new \WP_HTML_Tag_Processor( $block_content );
+		if ( $tag_processor->next_tag() ) {
+			// No esc_attr(): set_attribute() escapes, and escaping twice garbles the value.
+			$tag_processor->set_attribute( 'lang', $lang_and_dir['lang'] );
+			if ( 'rtl' === $lang_and_dir['dir'] || is_rtl() ) {
+				$tag_processor->set_attribute( 'dir', $lang_and_dir['dir'] );
+			}
+			return $tag_processor->get_updated_html();
+		}
+		return $block_content;
 	}
 
 	/**
