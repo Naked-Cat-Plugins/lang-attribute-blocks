@@ -109,7 +109,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 = TBA =
 * [NEW] Posts with their own language keep it when listed elsewhere: on the blog page, archives and search results, their title and excerpt are marked in their language, so screen readers and search engines read them correctly
 * [NEW] Yoast SEO compatibility: a page or post with its own language now declares it in Yoast’s structured data and social sharing tags, not only on the page itself
-* [DEV] Experimental, off by default: return true from the `nakedcatplugins_lang_attribute_blocks_switch_locale` filter and pages and posts with their own language show WordPress’, the theme’s and the plugins’ texts in that language too; a language not yet installed is downloaded from WordPress.org in the background when a page or post is saved with it, or with a link on the Plugins page
+* [DEV] Experimental, off by default: return true from the `nakedcatplugins_lang_attribute_blocks_switch_locale` filter and pages and posts with their own language show WordPress’, the theme’s and the plugins’ texts in that language too; a language not yet installed is downloaded from WordPress.org in the background when a page or post is saved with it, or with a link on the Plugins page; the `nakedcatplugins_lang_attribute_blocks_page_locale` filter chooses another installed locale for a language, for example pt_PT for pt-AO pages
 
 = 3.3 - 2026-10-02 =
 * [NEW] See each page’s and post’s language in a new Language column, and set or remove it from Quick Edit or for many items at once with Bulk Edit

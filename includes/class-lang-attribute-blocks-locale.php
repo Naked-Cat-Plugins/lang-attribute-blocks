@@ -239,8 +239,19 @@ final class Lang_Attribute_Blocks_Locale {
 		if ( '' === $lang || ! $this->is_enabled( $post_id, $lang ) ) {
 			return;
 		}
-		$locale = $this->lang_to_locale( $lang, $this->get_installed_locales() );
-		if ( null === $locale || get_locale() === $locale ) {
+		$installed = $this->get_installed_locales();
+		$locale    = $this->lang_to_locale( $lang, $installed );
+		/**
+		 * The locale a page or post with its own language switches to, e.g. to show pt-AO pages in
+		 * pt_PT when a theme has no pt_AO translation. Ignored unless the locale is installed.
+		 *
+		 * @since 3.4
+		 * @param string|null $locale  The installed locale matching the language, or null if none.
+		 * @param string      $lang    The page's language code, e.g. 'pt-AO'.
+		 * @param int         $post_id The page or post ID.
+		 */
+		$locale = apply_filters( 'nakedcatplugins_lang_attribute_blocks_page_locale', $locale, $lang, $post_id );
+		if ( ! is_string( $locale ) || ! in_array( $locale, $installed, true ) || get_locale() === $locale ) {
 			return;
 		}
 		// Read and cache the website's language first: once switched, get_locale() returns the page's.

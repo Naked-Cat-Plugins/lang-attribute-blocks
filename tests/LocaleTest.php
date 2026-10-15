@@ -243,4 +243,28 @@ final class LocaleTest extends TestCase {
 		update_post_meta( $other, '_nakedcatplugins_page_lang', 'ja' );
 		$this->assertCount( 1, array_filter( _get_cron_array(), fn ( $hooks ) => isset( $hooks[ Lang_Attribute_Blocks_Locale::CRON_HOOK ] ) ), 'Scheduled once.' );
 	}
+
+	/**
+	 * A site can choose another installed locale for a language, and an uninstalled one is ignored.
+	 */
+	public function test_page_locale_filter(): void {
+		$this->assertContains( 'pt_PT', get_available_languages(), 'The install needs pt_PT.' );
+		add_filter( Lang_Attribute_Blocks_Locale::FILTER, '__return_true' );
+		$page_id = $this->create_page( 'pt-BR' );
+		$choose  = function ( $locale, $lang, $post_id ) use ( $page_id ) {
+			return 'pt-BR' === $lang && $page_id === $post_id ? 'pt_PT' : $locale;
+		};
+		add_filter( 'nakedcatplugins_lang_attribute_blocks_page_locale', $choose, 10, 3 );
+		$this->go_to_page( $page_id );
+		$this->locale->switch_to_page_locale();
+		remove_filter( 'nakedcatplugins_lang_attribute_blocks_page_locale', $choose, 10 );
+		$this->assertSame( 'pt_PT', get_locale() );
+		restore_previous_locale();
+
+		$uninstalled = fn () => 'ja';
+		add_filter( 'nakedcatplugins_lang_attribute_blocks_page_locale', $uninstalled );
+		$this->locale->switch_to_page_locale();
+		remove_filter( 'nakedcatplugins_lang_attribute_blocks_page_locale', $uninstalled );
+		$this->assertFalse( is_locale_switched() );
+	}
 }
