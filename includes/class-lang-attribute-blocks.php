@@ -100,6 +100,9 @@ final class Lang_Attribute_Blocks {
 	private function __construct() {
 		// Hooks
 		$this->init_hooks();
+		// Experimental, off unless the nakedcatplugins_lang_attribute_blocks_switch_locale filter turns it on
+		require_once __DIR__ . '/class-lang-attribute-blocks-locale.php';
+		Lang_Attribute_Blocks_Locale::get_instance( $this );
 	}
 
 	/**
@@ -244,10 +247,12 @@ final class Lang_Attribute_Blocks {
 	 * pt_PT website edited by a user with en_US set on their profile it returns "en-US".
 	 * This mirrors its logic using the website's locale instead.
 	 *
+	 * Public since 3.4, so the locale switch can read it before switching.
+	 *
 	 * @since 3.3
 	 * @return string Language tag, e.g. 'pt-PT'.
 	 */
-	private function get_website_language() {
+	public function get_website_language() {
 		// Switching locale reloads the loaded text domains, so only do it once per request.
 		if ( null !== $this->website_language ) {
 			return $this->website_language;
@@ -538,6 +543,17 @@ final class Lang_Attribute_Blocks {
 			return $tag_processor->get_updated_html();
 		}
 		return $block_content;
+	}
+
+	/**
+	 * Get the language that applies to a singular page/post: its own, else its template's.
+	 *
+	 * @since 3.4
+	 * @param int $post_id The singular post ID.
+	 * @return string Language code, or empty if none applies.
+	 */
+	public function get_post_lang( int $post_id ): string {
+		return $this->get_page_lang_and_dir( $post_id )['lang'];
 	}
 
 	/**
