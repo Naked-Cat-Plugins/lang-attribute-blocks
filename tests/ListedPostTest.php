@@ -82,6 +82,19 @@ final class ListedPostTest extends TestCase {
 	}
 
 	/**
+	 * Another post's title fetched inside the main loop (a related posts list, often printed
+	 * with esc_html()) stays plain text, and so does its excerpt.
+	 */
+	public function test_no_wrap_for_other_posts_inside_the_loop(): void {
+		$current = $this->create_page( '', '' );
+		$other   = $this->create_page( 'pt-PT', 'ltr' );
+		$this->go_to_list( array( $current ) );
+		$this->assertSame( 'Título', $this->plugin->apply_post_lang_to_listed_title( 'Título', $other ) );
+		$GLOBALS['post'] = get_post( $other );
+		$this->assertSame( '<p>Resumo</p>', $this->plugin->apply_post_lang_to_listed_excerpt( '<p>Resumo</p>' ) );
+	}
+
+	/**
 	 * The filter can switch it off.
 	 */
 	public function test_filter_switches_it_off(): void {
