@@ -22,8 +22,8 @@ This plugin is heavily inspired by the Jb Audras plugin (including this readme f
 
 For more context: this plugin helps you to make your website compliant with the Web Content Accessibility Guidelines (WCAG) success criteria:
 
-* **3.1.1 – Language of Page**: The default human language of each web page can be programmatically determined. Use the template-level setting when all posts or pages sharing a template are in the same language, or the page-level setting when an entire page or post is written in a language other than the website or template default.
-* **3.1.2 – Language of Parts**: The human language of each passage or phrase in the content can be programmatically determined. Use the block-level setting when only specific sections within a page are in a different language.
+* **3.1.1 Language of Page**: The default human language of each web page can be programmatically determined. Use the template-level setting when all posts or pages sharing a template are in the same language, or the page-level setting when an entire page or post is written in a language other than the website or template default.
+* **3.1.2 Language of Parts**: The human language of each passage or phrase in the content can be programmatically determined. Use the block-level setting when only specific sections within a page are in a different language.
 
 The purpose of these success criteria is to ensure that user agents can correctly present content written in multiple languages.
 
@@ -80,7 +80,7 @@ Banner photo by [Hannah Wright](https://unsplash.com/@hannahwrightdesigner?utm_c
 
 Use the **Template Language** setting (in the Site Editor, under Appearance → Editor → Templates) when you have a group of pages or posts that all share the same language and use the same template — for example, a dedicated template for all your French-language posts. The language set on the template is automatically applied to every page or post using it, so you don't need to configure each one individually. It can always be overridden at the individual post or page level.
 
-Use the **Page Language** setting (in the Document Settings sidebar) when a specific page or post is written in a different language — either overriding the template-level setting or setting it independently when no template language is defined. This overrides the `lang` attribute on the HTML element itself, which corresponds to WCAG 3.1.1 (Language of Page).
+Use the **Page Language** setting (in the Document Settings sidebar) when a specific page or post is written in a different language, either overriding the template-level setting or setting it independently when no template language is defined. This overrides the `lang` attribute on the HTML element itself, which corresponds to WCAG 3.1.1 (Language of Page).
 
 Use the **Block Language** setting (in the block’s sidebar panel) when only a specific section within a page is in a different language, while the rest of the page remains in the site’s default language. This corresponds to WCAG 3.1.2 (Language of Parts).
 
