@@ -100,6 +100,9 @@ final class Lang_Attribute_Blocks {
 	private function __construct() {
 		// Hooks
 		$this->init_hooks();
+		// Experimental, off unless the nakedcatplugins_lang_attribute_blocks_switch_locale filter turns it on
+		require_once __DIR__ . '/class-lang-attribute-blocks-locale.php';
+		Lang_Attribute_Blocks_Locale::get_instance( $this );
 	}
 
 	/**
@@ -244,10 +247,12 @@ final class Lang_Attribute_Blocks {
 	 * pt_PT website edited by a user with en_US set on their profile it returns "en-US".
 	 * This mirrors its logic using the website's locale instead.
 	 *
+	 * Public since 3.4, so the locale switch can read it before switching.
+	 *
 	 * @since 3.3
 	 * @return string Language tag, e.g. 'pt-PT'.
 	 */
-	private function get_website_language() {
+	public function get_website_language() {
 		// Switching locale reloads the loaded text domains, so only do it once per request.
 		if ( null !== $this->website_language ) {
 			return $this->website_language;
@@ -472,6 +477,22 @@ final class Lang_Attribute_Blocks {
 	}
 
 	/**
+	 * Whether a post is the one the main query's loop is on.
+	 *
+	 * Only that post's title and excerpt are wrapped: in_the_loop() alone is also true for
+	 * lists a theme or plugin builds inside the main loop (related posts on a product page),
+	 * which often print titles with esc_html( get_the_title() ) and would show the markup.
+	 *
+	 * @since 3.4
+	 * @param int $post_id The post ID.
+	 * @return bool
+	 */
+	private function is_main_loop_post( int $post_id ): bool {
+		global $wp_query;
+		return $post_id > 0 && in_the_loop() && $wp_query instanceof \WP_Query && isset( $wp_query->post->ID ) && (int) $wp_query->post->ID === $post_id;
+	}
+
+	/**
 	 * Wrap the title of a post listed in a classic theme's loop in its own language.
 	 *
 	 * @since 3.4
@@ -481,7 +502,7 @@ final class Lang_Attribute_Blocks {
 	 * @return string
 	 */
 	public function apply_post_lang_to_listed_title( $title, $post_id = 0 ) {
-		if ( '' === trim( (string) $title ) || ! in_the_loop() ) {
+		if ( '' === trim( (string) $title ) || ! $this->is_main_loop_post( (int) $post_id ) ) {
 			return $title;
 		}
 		$lang_and_dir = $this->get_listed_post_lang_and_dir( $post_id );
@@ -500,7 +521,7 @@ final class Lang_Attribute_Blocks {
 	 * @return string
 	 */
 	public function apply_post_lang_to_listed_excerpt( $excerpt ) {
-		if ( '' === trim( (string) $excerpt ) || ! in_the_loop() ) {
+		if ( '' === trim( (string) $excerpt ) || ! $this->is_main_loop_post( (int) get_the_ID() ) ) {
 			return $excerpt;
 		}
 		$lang_and_dir = $this->get_listed_post_lang_and_dir( get_the_ID() );
@@ -538,6 +559,17 @@ final class Lang_Attribute_Blocks {
 			return $tag_processor->get_updated_html();
 		}
 		return $block_content;
+	}
+
+	/**
+	 * Get the language that applies to a singular page/post: its own, else its template's.
+	 *
+	 * @since 3.4
+	 * @param int $post_id The singular post ID.
+	 * @return string Language code, or empty if none applies.
+	 */
+	public function get_post_lang( int $post_id ): string {
+		return $this->get_page_lang_and_dir( $post_id )['lang'];
 	}
 
 	/**
