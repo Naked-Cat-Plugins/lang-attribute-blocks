@@ -235,6 +235,8 @@ final class LocaleTest extends TestCase {
 		add_filter( Lang_Attribute_Blocks_Locale::FILTER, '__return_true' );
 		update_post_meta( $page_id, '_nakedcatplugins_page_lang', 'pt-BR' );
 		$this->assertFalse( wp_next_scheduled( Lang_Attribute_Blocks_Locale::CRON_HOOK ), 'Installed already.' );
+		update_post_meta( $page_id, '_nakedcatplugins_page_lang', 'pt' );
+		$this->assertFalse( wp_next_scheduled( Lang_Attribute_Blocks_Locale::CRON_HOOK ), 'Default locale installed already.' );
 
 		update_post_meta( $page_id, '_nakedcatplugins_page_lang', 'ja' );
 		$this->assertIsInt( wp_next_scheduled( Lang_Attribute_Blocks_Locale::CRON_HOOK ) );

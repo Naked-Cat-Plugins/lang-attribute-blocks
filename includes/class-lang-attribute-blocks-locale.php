@@ -422,8 +422,13 @@ final class Lang_Attribute_Blocks_Locale {
 			return;
 		}
 		$lang = $this->plugin->sanitize_lang_code( get_post_meta( (int) $post_id, '_nakedcatplugins_page_lang', true ) );
+		$locale = str_replace( '-', '_', $lang );
+		// A language with no region is the language's default locale: pt is pt_PT.
+		if ( false === strpos( $locale, '_' ) ) {
+			$locale = self::DEFAULT_LOCALES[ strtolower( $locale ) ] ?? $locale;
+		}
 		// Installed exactly: nothing to do, and no need to wake WP-Cron.
-		if ( '' === $lang || in_array( str_replace( '-', '_', $lang ), $this->get_installed_locales(), true ) ) {
+		if ( '' === $lang || in_array( $locale, $this->get_installed_locales(), true ) ) {
 			return;
 		}
 		$this->schedule_background_install();
