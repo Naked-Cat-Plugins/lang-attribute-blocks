@@ -4,7 +4,7 @@ Tags: language, accessibility, block editor, Gutenberg, classic editor
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 7.2
-Stable tag: 3.3
+Stable tag: 3.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -58,6 +58,7 @@ Banner photo by [Hannah Wright](https://unsplash.com/@hannahwrightdesigner?utm_c
 * See the language set on each page or post in a **Language column** on the Pages and Posts lists, and change it with **Quick Edit**, or for many items at once with **Bulk Edit**
 * Add `lang` and `dir` attributes to Group, Columns, Cover, and other specific WordPress Blocks, mentioned above
 * Show visual outline around blocks that have a language attribute set - For easy identification of blocks you have already set to a different language during your editing process, only for Administrators and Editors, and if enabled in Settings - Writing
+* Experimental, off by default: show WordPress’, the theme’s and the plugins’ texts on pages and posts with their own language in that language too, and install that language automatically when it is missing (see the FAQ on how to turn it on)
 
 == Screenshots ==
 
@@ -84,6 +85,30 @@ Use the **Page Language** setting (in the Document Settings sidebar) when a spec
 
 Use the **Block Language** setting (in the block’s sidebar panel) when only a specific section within a page is in a different language, while the rest of the page remains in the site’s default language. This corresponds to WCAG 3.1.2 (Language of Parts).
 
+= Can pages and posts with their own language also show WordPress’, the theme’s and the plugins’ texts in that language? =
+
+Yes, with an experimental feature that is off by default and may still change. When it is on, a page or post with its own language (set on the page itself or on its template) also shows texts such as dates, comment forms, post navigation and buttons in that language, as long as WordPress has the language installed.
+
+To turn it on, add this line to your theme’s `functions.php` file or to a small must-use plugin in `wp-content/mu-plugins/`:
+
+    add_filter( 'nakedcatplugins_lang_attribute_blocks_switch_locale', '__return_true' );
+
+The filter also receives the page or post ID and its language code, so you can turn it on for only some of them.
+
+How it works:
+
+* It applies to single pages and posts only, not to the blog page, archives or search results.
+* When a page or post is saved with a language WordPress does not have yet, that language is downloaded from WordPress.org in the background, along with the theme’s and plugins’ translations for it. While a language is missing, Administrators also get a “Download translations” link next to this plugin on the Plugins page.
+* The download runs on WP-Cron. If your website has WP-Cron disabled, make sure a real cron job runs it.
+* Until the language is installed, the page shows these texts in the website’s language, so it never ends up half translated.
+* Texts the theme or a plugin prepares before WordPress knows which page is being shown stay in the website’s language.
+
+To use another installed locale for a language, use the `nakedcatplugins_lang_attribute_blocks_page_locale` filter. For example, to show Angolan Portuguese (pt-AO) pages with the European Portuguese (pt_PT) translations, when your theme has no pt_AO translation:
+
+    add_filter( 'nakedcatplugins_lang_attribute_blocks_page_locale', function ( $locale, $lang ) {
+        return 'pt-AO' === $lang ? 'pt_PT' : $locale;
+    }, 10, 2 );
+
 = Why not have the option to set the language attribute on all block types? =
 
 The idea is to keep it simple and help content and website editors set different language sections, with as many child-blocks as they want, instead of setting it block by block.
@@ -106,10 +131,11 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= TBA =
+= 3.4 - 2026-10-20 =
 * [NEW] Posts with their own language keep it when listed elsewhere: on the blog page, archives and search results, their title and excerpt are marked in their language, so screen readers and search engines read them correctly
 * [NEW] Yoast SEO compatibility: a page or post with its own language now declares it in Yoast’s structured data and social sharing tags, not only on the page itself
 * [DEV] Experimental, off by default: return true from the `nakedcatplugins_lang_attribute_blocks_switch_locale` filter and pages and posts with their own language show WordPress’, the theme’s and the plugins’ texts in that language too; a language not yet installed is downloaded from WordPress.org in the background when a page or post is saved with it, or with a link on the Plugins page; the `nakedcatplugins_lang_attribute_blocks_page_locale` filter chooses another installed locale for a language, for example pt_PT for pt-AO pages
+* [DEV] Tested up to WordPress 7.2-alpha-64319
 
 = 3.3 - 2026-10-02 =
 * [NEW] See each page’s and post’s language in a new Language column, and set or remove it from Quick Edit or for many items at once with Bulk Edit
