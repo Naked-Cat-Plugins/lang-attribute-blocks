@@ -1,6 +1,6 @@
 # Language Attribute for Container Blocks and Pages/Posts
 
-A WordPress plugin that adds  `lang` and `dir` attributes to Group, Columns, Cover, and other specific WordPress Blocks, or to the whole page/post for improved accessibility.
+A WordPress plugin that adds `lang` and `dir` attributes to Group, Columns, Cover, and other specific WordPress Blocks, or to the whole page/post for improved accessibility.
 
 ## Description
 
@@ -19,7 +19,7 @@ This plugin provides a way to ensure that language changes are correctly indicat
 1. Clone or download the plugin to your WordPress plugins directory:
    ```bash
    cd wp-content/plugins/
-   git clone [repository-url] lang-attribute-blocks
+   git clone https://github.com/Naked-Cat-Plugins/lang-attribute-blocks.git lang-attribute-blocks
    cd lang-attribute-blocks
    ```
 
@@ -52,4 +52,4 @@ This plugin provides a way to ensure that language changes are correctly indicat
 
 ## How can I report security bugs?
 
-You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage and handle any security vulnerabilities. [Report a security vulnerability.]( https://patchstack.com/database/vdp/ce04f590-44d9-45f3-9411-9028e87d4725 )
+You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/ce04f590-44d9-45f3-9411-9028e87d4725)

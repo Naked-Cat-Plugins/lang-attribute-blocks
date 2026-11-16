@@ -17,8 +17,10 @@ This plugin aims to ensure that any language change in a page’s content is ind
 This feature is available on the core block editor only at a text formatting level after code from [Jb Audras plugin “Lang Attribute for the Block Editor”](https://wordpress.org/plugins/lang-attribute/) was merged into core. The objective of this plugin is to provide the same functionality at a container block level (Group - including all its variants, Columns, Cover, and other specific block types) so that the language applies to all child elements, no matter the kind of content inside.
 
 The plugin also supports setting the language at the page or post level, both on the blocks and the classic editor. When an entire page is written in a different language than the website’s default, you can override the HTML `lang` and `dir` attributes for that specific page directly from the Document Settings sidebar, without needing to wrap everything in a container block.
-For even broader coverage, the plugin supports setting the language at the template level in the Site Editor (Appearance → Editor → Templates). A language set on a template is automatically applied to all pages and posts using that template, unless a specific language is set at the individual post or page level — in which case the post-level setting takes precedence.
-This plugin is heavily inspired by the Jb Audras plugin (including this readme file). The development started at WordCamp Europe 2025 Contributor Day, by Marco Almeida from [Naked Cat Plugins](https://profiles.wordpress.org/nakedcatplugins/) / [Webdados](https://profiles.wordpress.org/webdados/), and the help from [Ryan Welcher](https://profiles.wordpress.org/welcher/) on the code side and [Amber Hinds](https://profiles.wordpress.org/alh0319/) on the accessibility compliance side.
+
+For even broader coverage, the plugin supports setting the language at the template level in the Site Editor (Appearance → Editor → Templates). A language set on a template is automatically applied to all pages and posts using that template, unless a specific language is set at the individual post or page level, in which case the post-level setting takes precedence.
+
+This plugin is heavily inspired by the Jb Audras plugin (including this readme file). The development started at WordCamp Europe 2025 Contributor Day, by Marco Almeida from [Naked Cat Plugins](https://profiles.wordpress.org/nakedcatplugins/) / [Webdados](https://profiles.wordpress.org/webdados/), with help from [Ryan Welcher](https://profiles.wordpress.org/welcher/) on the code side and [Amber Hinds](https://profiles.wordpress.org/alh0319/) on the accessibility compliance side.
 
 For more context: this plugin helps you to make your website compliant with the Web Content Accessibility Guidelines (WCAG) success criteria:
 
@@ -79,7 +81,7 @@ Banner photo by [Hannah Wright](https://unsplash.com/@hannahwrightdesigner?utm_c
 
 = When should I use the template-level, page-level, or block-level language setting? =
 
-Use the **Template Language** setting (in the Site Editor, under Appearance → Editor → Templates) when you have a group of pages or posts that all share the same language and use the same template — for example, a dedicated template for all your French-language posts. The language set on the template is automatically applied to every page or post using it, so you don't need to configure each one individually. It can always be overridden at the individual post or page level.
+Use the **Template Language** setting (in the Site Editor, under Appearance → Editor → Templates) when you have a group of pages or posts that all share the same language and use the same template, for example a dedicated template for all your French-language posts. The language set on the template is automatically applied to every page or post using it, so you don't need to configure each one individually. It can always be overridden at the individual post or page level.
 
 Use the **Page Language** setting (in the Document Settings sidebar) when a specific page or post is written in a different language, either overriding the template-level setting or setting it independently when no template language is defined. This overrides the `lang` attribute on the HTML element itself, which corresponds to WCAG 3.1.1 (Language of Page).
 
@@ -118,7 +120,7 @@ The idea is to keep it simple and help content and website editors set different
 Yes. Use the `nakedcatplugins_lang_attr_highlight_color` PHP filter and return the color you want.
 Here’s a [Gist example](https://gist.github.com/webdados/61197dd2e98f399ba2cfeefbac518851).
 
-If your are working on a WordCamp website, or you don’t want to mess around with PHP, you can also add custom CSS to change the color, overriding our `--nakedcatplugins-lang-attr-highlight-color` variable.
+If you are working on a WordCamp website, or you don’t want to mess around with PHP, you can also add custom CSS to change the color, overriding our `--nakedcatplugins-lang-attr-highlight-color` variable.
 Here’s a [Gist example](https://gist.github.com/webdados/7179f5be4e224ba84867cf77e9bc9174).
 
 = How can I contribute to this plugin? =
@@ -127,7 +129,7 @@ Here’s a [Gist example](https://gist.github.com/webdados/7179f5be4e224ba84867c
 
 = How can I report security bugs? =
 
-You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability.]( https://patchstack.com/database/vdp/ce04f590-44d9-45f3-9411-9028e87d4725 )
+You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/ce04f590-44d9-45f3-9411-9028e87d4725)
 
 == Changelog ==
 
