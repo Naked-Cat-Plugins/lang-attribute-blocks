@@ -129,7 +129,7 @@ Here’s a [Gist example](https://gist.github.com/webdados/7179f5be4e224ba84867c
 
 = How can I report security bugs? =
 
-You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/ce04f590-44d9-45f3-9411-9028e87d4725)
+You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability.]( https://patchstack.com/database/vdp/ce04f590-44d9-45f3-9411-9028e87d4725 )
 
 == Changelog ==
 
