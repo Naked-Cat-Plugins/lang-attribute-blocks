@@ -41,7 +41,8 @@ This plugin provides a way to ensure that language changes are correctly indicat
    ```
 
 2. The built files will be generated in the `build/` directory:
-   - `build/index.js` - Compiled JavaScript
+   - `build/index.js` - Compiled block editor JavaScript
+   - `build/document.js` - Compiled document (page and template language) JavaScript
    - `build/index.css` - Compiled CSS
 
 ### Build Scripts
